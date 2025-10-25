@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import Auth from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import Leaderboard from "@/pages/leaderboard";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -17,7 +18,10 @@ function Router() {
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/auth" component={Auth} />
+        </>
       ) : (
         <>
           <Route path="/" component={Dashboard} />
@@ -50,7 +54,15 @@ function AppContent() {
                   <h1 className="text-xl font-bold text-primary">Growth GPT</h1>
                 </div>
                 <button
-                  onClick={() => window.location.href = "/api/logout"}
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/logout", { method: "POST" });
+                      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+                      window.location.href = "/";
+                    } catch (error) {
+                      console.error("Logout failed:", error);
+                    }
+                  }}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   data-testid="button-logout"
                 >

@@ -24,7 +24,7 @@ export default function Landing() {
             <Button
               size="lg"
               className="text-lg px-8 py-6"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/auth"}
               data-testid="button-get-started"
             >
               Get Started Free
@@ -113,7 +113,7 @@ export default function Landing() {
             <Button
               size="lg"
               className="text-lg px-8 py-6"
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/auth"}
               data-testid="button-cta-start"
             >
               Start Learning Now

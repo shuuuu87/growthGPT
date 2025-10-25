@@ -1,21 +1,105 @@
-// Reference: javascript_log_in_with_replit blueprint
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./localAuth";
 import { generateMCQQuestions } from "./openai";
-import { insertStudySessionSchema, insertQuizResultSchema, insertGoalSchema } from "@shared/schema";
+import { insertStudySessionSchema, insertQuizResultSchema, insertGoalSchema, insertUserSchema, loginSchema } from "@shared/schema";
+import bcrypt from "bcryptjs";
+import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
   // Auth routes
+  app.post('/api/register', async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      const existingUser = await storage.getUserByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword,
+      });
+
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Registration successful but login failed" });
+        }
+        const { password, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+      });
+    } catch (error: any) {
+      console.error("Error registering user:", error);
+      
+      if (error.code === '23505') {
+        if (error.detail?.includes('username')) {
+          return res.status(400).json({ message: "Username already exists" });
+        }
+        if (error.detail?.includes('email')) {
+          return res.status(400).json({ message: "Email already exists" });
+        }
+      }
+      
+      if (error.issues) {
+        return res.status(400).json({ message: error.issues[0]?.message || "Validation error" });
+      }
+      
+      res.status(400).json({ message: error.message || "Failed to register" });
+    }
+  });
+
+  app.post('/api/login', (req, res, next) => {
+    try {
+      loginSchema.parse(req.body);
+      
+      passport.authenticate('local', (err: any, user: any, info: any) => {
+        if (err) {
+          return res.status(500).json({ message: "An error occurred during login" });
+        }
+        if (!user) {
+          return res.status(401).json({ message: info?.message || "Invalid username or password" });
+        }
+        
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            return res.status(500).json({ message: "Login failed" });
+          }
+          const { password, ...userWithoutPassword } = user;
+          res.json(userWithoutPassword);
+        });
+      })(req, res, next);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Invalid request" });
+    }
+  });
+
+  app.post('/api/logout', (req, res) => {
+    req.logout({ keepSessionInfo: false }, (err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          return res.status(500).json({ message: "Failed to destroy session" });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ message: "Logged out successfully" });
+      });
+    });
+  });
+
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const user = req.user;
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -25,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Study sessions routes
   app.get("/api/sessions", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const sessions = await storage.getUserStudySessions(userId);
       res.json(sessions);
     } catch (error) {
@@ -36,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/sessions", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertStudySessionSchema.parse(req.body);
       const session = await storage.createStudySession(userId, validatedData);
       res.json(session);
@@ -56,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Session not found" });
       }
 
-      if (session.userId !== req.user.claims.sub) {
+      if (session.userId !== req.user.id) {
         return res.status(403).json({ message: "Forbidden" });
       }
 
@@ -73,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionId } = req.params;
       const { answers } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
 
       const session = await storage.getStudySession(sessionId);
       if (!session) {
@@ -125,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Activity routes
   app.get("/api/activity/me", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const activity = await storage.getUserActivity(userId, 7);
       res.json(activity);
     } catch (error) {
@@ -148,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Streak route
   app.get("/api/streak", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const streak = await storage.getStreak(userId);
       res.json({ streak });
     } catch (error) {
@@ -160,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Goals routes
   app.get("/api/goals", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const goals = await storage.getUserGoals(userId);
       res.json(goals);
     } catch (error) {
@@ -171,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/goals", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertGoalSchema.parse(req.body);
       const goal = await storage.createGoal(userId, validatedData);
       res.json(goal);
