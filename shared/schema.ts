@@ -1,6 +1,7 @@
 import { sql, relations } from "drizzle-orm";
 import {
   index,
+  uniqueIndex,
   jsonb,
   pgTable,
   timestamp,
@@ -79,7 +80,7 @@ export const studyActivity = pgTable("study_activity", {
   studyTime: integer("study_time").notNull().default(0), // in minutes
   score: integer("score").notNull().default(0),
 }, (table) => ({
-  userDateUnique: index("user_date_unique").on(table.userId, table.date),
+  userDateUnique: uniqueIndex("user_date_unique").on(table.userId, table.date),
 }));
 
 // Relations
