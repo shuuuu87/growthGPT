@@ -24,15 +24,25 @@ export async function generateMCQQuestions(topic: string, subject: string): Prom
       messages: [
         {
           role: "system",
-          content: `You are an expert educator creating questions for students. Generate exactly 5 questions with one-word answers about the given topic. Each question should be clear and have a simple one-word answer. Format your response as a numbered list with "Q:" for question and "A:" for answer on the next line. Example:
+          content: `You are an expert educator creating multiple choice questions for students. Generate exactly 5 questions about the given topic. Each question should have 4 answer options (A, B, C, D) with only ONE correct answer. The wrong answers should be plausible but clearly incorrect. Format your response exactly like this:
+
 1. Q: What is the capital of France?
-   A: Paris
-2. Q: What color is the sky?
-   A: Blue`,
+   A: London
+   B: Paris
+   C: Berlin
+   D: Madrid
+   CORRECT: B
+
+2. Q: What gas do plants absorb during photosynthesis?
+   A: Oxygen
+   B: Nitrogen
+   C: Carbon Dioxide
+   D: Hydrogen
+   CORRECT: C`,
         },
         {
           role: "user",
-          content: `Create 5 questions with one-word answers about "${topic}" in the subject of ${subject}. Make them educational, clear, and appropriate for students.`,
+          content: `Create 5 multiple choice questions about "${topic}" in the subject of ${subject}. Make them educational, clear, and appropriate for students. Each question must have 4 different answer options with only one correct answer.`,
         },
       ],
       max_completion_tokens: 1024,
@@ -57,37 +67,49 @@ export async function generateMCQQuestions(topic: string, subject: string): Prom
 function parseQuestionsFromText(text: string, topic: string): MCQQuestion[] {
   const questions: MCQQuestion[] = [];
   
-  // Try to parse the numbered list format
-  const lines = text.split('\n').filter(line => line.trim());
+  // Try to parse the multiple choice format
+  const lines = text.split('\n');
   let currentQuestion = '';
-  let currentAnswer = '';
+  let currentOptions: string[] = [];
+  let correctAnswer = -1;
   
   for (const line of lines) {
     const trimmed = line.trim();
     
     // Match question pattern (1. Q: or just Q:)
     if (trimmed.match(/^\d+\.\s*Q:/i) || trimmed.startsWith('Q:')) {
-      if (currentQuestion && currentAnswer) {
-        questions.push(createQuestion(currentQuestion, currentAnswer));
-        currentQuestion = '';
-        currentAnswer = '';
+      // Save previous question if complete
+      if (currentQuestion && currentOptions.length === 4 && correctAnswer >= 0) {
+        questions.push({
+          question: currentQuestion,
+          options: currentOptions,
+          correctAnswer: correctAnswer,
+        });
       }
+      // Reset for new question
       currentQuestion = trimmed.replace(/^\d+\.\s*Q:\s*/i, '').replace(/^Q:\s*/i, '').trim();
+      currentOptions = [];
+      correctAnswer = -1;
     }
-    // Match answer pattern
-    else if (trimmed.match(/^A:/i)) {
-      currentAnswer = trimmed.replace(/^A:\s*/i, '').trim();
-      if (currentQuestion && currentAnswer) {
-        questions.push(createQuestion(currentQuestion, currentAnswer));
-        currentQuestion = '';
-        currentAnswer = '';
-      }
+    // Match option patterns (A:, B:, C:, D:)
+    else if (trimmed.match(/^[A-D]:/i)) {
+      const optionText = trimmed.replace(/^[A-D]:\s*/i, '').trim();
+      currentOptions.push(optionText);
+    }
+    // Match correct answer pattern (CORRECT: B)
+    else if (trimmed.match(/^CORRECT:\s*[A-D]/i)) {
+      const correctLetter = trimmed.replace(/^CORRECT:\s*/i, '').trim().toUpperCase();
+      correctAnswer = correctLetter.charCodeAt(0) - 'A'.charCodeAt(0);
     }
   }
   
-  // Add the last question if exists
-  if (currentQuestion && currentAnswer) {
-    questions.push(createQuestion(currentQuestion, currentAnswer));
+  // Add the last question if complete
+  if (currentQuestion && currentOptions.length === 4 && correctAnswer >= 0) {
+    questions.push({
+      question: currentQuestion,
+      options: currentOptions,
+      correctAnswer: correctAnswer,
+    });
   }
   
   // If parsing failed, create fallback questions
@@ -133,18 +155,18 @@ function createFallbackQuestions(topic: string): MCQQuestion[] {
   // Fallback questions in case parsing fails
   return [
     {
-      question: `What is the main concept of ${topic}?`,
-      options: ['concept', 'idea', 'theory', 'principle'],
+      question: `What is the primary focus when studying ${topic}?`,
+      options: ['Understanding core concepts and principles', 'Memorizing dates only', 'Learning unrelated subjects', 'Ignoring practical applications'],
       correctAnswer: 0,
     },
     {
-      question: `Which term best describes ${topic}?`,
-      options: ['term', 'word', 'phrase', 'label'],
+      question: `Why is learning about ${topic} important?`,
+      options: ['It builds foundational knowledge', 'It has no practical use', 'It only matters for tests', 'It should be avoided'],
       correctAnswer: 0,
     },
     {
-      question: `What field does ${topic} belong to?`,
-      options: ['field', 'area', 'domain', 'subject'],
+      question: `What approach is best for mastering ${topic}?`,
+      options: ['Regular practice and review', 'Cramming before exams', 'Avoiding difficult concepts', 'Skipping fundamentals'],
       correctAnswer: 0,
     },
   ];
