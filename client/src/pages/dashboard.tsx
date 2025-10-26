@@ -7,7 +7,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Flame, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
-import type { StudySession, QuizResult, Goal, StudyActivity } from "@shared/schema";
+import type { StudySessionWithScore, QuizResult, Goal, StudyActivity } from "@shared/schema";
 import { AddSessionDialog } from "@/components/add-session-dialog";
 import { SessionList } from "@/components/session-list";
 import { ProgressChart } from "@/components/progress-chart";
@@ -37,7 +37,7 @@ export default function Dashboard() {
   }, [isAuthenticated, isLoading, toast]);
 
   // Fetch study sessions
-  const { data: sessions = [] } = useQuery<StudySession[]>({
+  const { data: sessions = [] } = useQuery<StudySessionWithScore[]>({
     queryKey: ["/api/sessions"],
     enabled: isAuthenticated,
   });

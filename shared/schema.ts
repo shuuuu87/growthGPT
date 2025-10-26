@@ -176,3 +176,7 @@ export type InsertQuizResult = z.infer<typeof insertQuizResultSchema>;
 export type Goal = typeof goals.$inferSelect;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type StudyActivity = typeof studyActivity.$inferSelect;
+export type StudySessionWithScore = StudySession & {
+  score?: number;
+  totalQuestions?: number;
+};

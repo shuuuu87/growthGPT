@@ -1,10 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, BookOpen, CheckCircle2 } from "lucide-react";
-import type { StudySession } from "@shared/schema";
+import { Clock, BookOpen, CheckCircle2, Award } from "lucide-react";
+import type { StudySessionWithScore } from "@shared/schema";
 
 interface SessionListProps {
-  sessions: StudySession[];
+  sessions: StudySessionWithScore[];
   onCompleteSession: (sessionId: string) => void;
 }
 
@@ -92,9 +92,19 @@ export function SessionList({ sessions, onCompleteSession }: SessionListProps) {
                       Completed
                     </Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {session.completedAt &&
-                      new Date(session.completedAt).toLocaleDateString()}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div>
+                      {session.completedAt &&
+                        new Date(session.completedAt).toLocaleDateString()}
+                    </div>
+                    {session.score !== undefined && session.totalQuestions !== undefined && (
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        <Award className="w-4 h-4 text-yellow-500" />
+                        <span data-testid={`score-${session.id}`}>
+                          Score: {session.score}/{session.totalQuestions} ({Math.round((session.score / session.totalQuestions) * 100)}%)
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

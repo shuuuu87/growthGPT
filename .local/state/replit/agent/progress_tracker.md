@@ -27,3 +27,10 @@
 [x] 27. Make firstName and lastName required fields in registration
 [x] 28. Add profile image change functionality with avatar selection dialog
 [x] 29. Fix avatar update API to properly update session and return JSON response
+[x] 30. Configure workflow with correct output type (webview) and port 5000
+[x] 31. Verify OPENROUTER_API_KEY is properly configured in environment
+[x] 32. Confirm application is running successfully with all dependencies
+[x] 33. Project import and migration fully completed - ready for use
+[x] 34. Add quiz score display on completed study sessions
+[x] 35. Implement efficient database queries to fetch sessions with scores (fixed N+1 pattern)
+[x] 36. Ensure full type safety with StudySessionWithScore type throughout the stack

@@ -14,6 +14,7 @@ import {
   type Goal,
   type InsertGoal,
   type StudyActivity,
+  type StudySessionWithScore,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -30,6 +31,7 @@ export interface IStorage {
 
   // Study sessions
   getUserStudySessions(userId: string): Promise<StudySession[]>;
+  getUserStudySessionsWithScores(userId: string): Promise<StudySessionWithScore[]>;
   createStudySession(userId: string, session: InsertStudySession): Promise<StudySession>;
   getStudySession(id: string): Promise<StudySession | undefined>;
   completeStudySession(id: string): Promise<StudySession>;
@@ -107,6 +109,42 @@ export class DatabaseStorage implements IStorage {
       .from(studySessions)
       .where(eq(studySessions.userId, userId))
       .orderBy(desc(studySessions.createdAt));
+  }
+
+  async getUserStudySessionsWithScores(userId: string): Promise<StudySessionWithScore[]> {
+    const sessions = await db
+      .select()
+      .from(studySessions)
+      .where(eq(studySessions.userId, userId))
+      .orderBy(desc(studySessions.createdAt));
+
+    if (sessions.length === 0) {
+      return [];
+    }
+
+    const allQuizResults = await db
+      .select()
+      .from(quizResults)
+      .where(eq(quizResults.userId, userId))
+      .orderBy(desc(quizResults.createdAt));
+
+    const quizResultMap = new Map<string, QuizResult>();
+    for (const result of allQuizResults) {
+      if (!quizResultMap.has(result.sessionId)) {
+        quizResultMap.set(result.sessionId, result);
+      }
+    }
+
+    const sessionsWithScores: StudySessionWithScore[] = sessions.map((session) => {
+      const quizResult = quizResultMap.get(session.id);
+      return {
+        ...session,
+        score: quizResult?.score,
+        totalQuestions: quizResult?.totalQuestions,
+      };
+    });
+
+    return sessionsWithScores;
   }
 
   async createStudySession(userId: string, session: InsertStudySession): Promise<StudySession> {
