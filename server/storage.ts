@@ -21,9 +21,11 @@ import { eq, desc, sql, and, gte } from "drizzle-orm";
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserAvatar(id: string, profileImageUrl: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
 
   // Study sessions
@@ -54,9 +56,21 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserById(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
+  }
+
+  async updateUserAvatar(id: string, profileImageUrl: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ profileImageUrl, updatedAt: new Date() })
+      .where(eq(users.id, id));
   }
 
   async createUser(userData: UpsertUser): Promise<User> {

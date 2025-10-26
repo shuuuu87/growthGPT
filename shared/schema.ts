@@ -31,8 +31,8 @@ export const users = pgTable("users", {
   username: varchar("username").unique().notNull(),
   password: varchar("password").notNull(),
   email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
   profileImageUrl: varchar("profile_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -135,6 +135,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 }).extend({
   username: z.string().min(3, "Username must be at least 3 characters").max(50),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
 });
 
 export const loginSchema = z.object({

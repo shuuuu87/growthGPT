@@ -1,4 +1,5 @@
-import { Home, Trophy, User } from "lucide-react";
+import { useState } from "react";
+import { Home, Trophy, User, Edit } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -12,6 +13,8 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { ChangeAvatarDialog } from "@/components/change-avatar-dialog";
 import type { User as UserType } from "@shared/schema";
 
 const menuItems = [
@@ -33,6 +36,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
 
   const getDisplayName = () => {
     if (!user) return "Student";
@@ -56,16 +60,27 @@ export function AppSidebar({ user }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10">
-            <AvatarImage
-              src={user?.profileImageUrl || undefined}
-              alt={getDisplayName()}
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative group">
+            <Avatar className="w-10 h-10">
+              <AvatarImage
+                src={user?.profileImageUrl || undefined}
+                alt={getDisplayName()}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-background border shadow-sm hover:bg-accent"
+              onClick={() => setShowAvatarDialog(true)}
+              data-testid="button-change-avatar"
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+          </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm truncate">{getDisplayName()}</p>
             <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
@@ -95,6 +110,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      {user && showAvatarDialog && (
+        <ChangeAvatarDialog
+          open={showAvatarDialog}
+          onClose={() => setShowAvatarDialog(false)}
+          currentUser={user}
+        />
+      )}
     </Sidebar>
   );
 }

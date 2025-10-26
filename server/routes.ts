@@ -6,7 +6,7 @@ import { generateMCQQuestions } from "./openrouter";
 import { insertStudySessionSchema, insertQuizResultSchema, insertGoalSchema, insertUserSchema, loginSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import passport from "passport";
-import { getRandomAvatar } from "./avatars";
+import { getRandomAvatar } from "@shared/avatars";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -105,6 +105,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.patch('/api/user/avatar', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('[AVATAR UPDATE] Starting avatar update for user:', req.user.id);
+      console.log('[AVATAR UPDATE] Request body:', req.body);
+      
+      const userId = req.user.id;
+      const { profileImageUrl } = req.body;
+
+      if (!profileImageUrl || typeof profileImageUrl !== 'string') {
+        console.log('[AVATAR UPDATE] Invalid profileImageUrl:', profileImageUrl);
+        return res.status(400).json({ message: "Invalid profile image URL" });
+      }
+
+      console.log('[AVATAR UPDATE] Updating avatar to:', profileImageUrl);
+      await storage.updateUserAvatar(userId, profileImageUrl);
+      
+      console.log('[AVATAR UPDATE] Fetching updated user');
+      const updatedUser = await storage.getUserById(userId);
+      
+      if (!updatedUser) {
+        console.log('[AVATAR UPDATE] User not found after update');
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update the session with the new user data
+      req.user = updatedUser;
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      console.log('[AVATAR UPDATE] Sending response with updated user');
+      res.setHeader('Content-Type', 'application/json');
+      return res.json(userWithoutPassword);
+    } catch (error: any) {
+      console.error("[AVATAR UPDATE] Error:", error);
+      return res.status(500).json({ message: error.message || "Failed to update profile image" });
     }
   });
 

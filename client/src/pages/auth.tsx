@@ -189,7 +189,7 @@ export default function Auth() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="register-firstname">First Name (optional)</Label>
+                <Label htmlFor="register-firstname">First Name</Label>
                 <Input
                   id="register-firstname"
                   data-testid="input-register-firstname"
@@ -202,10 +202,11 @@ export default function Auth() {
                       firstName: e.target.value,
                     })
                   }
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="register-lastname">Last Name (optional)</Label>
+                <Label htmlFor="register-lastname">Last Name</Label>
                 <Input
                   id="register-lastname"
                   data-testid="input-register-lastname"
@@ -218,6 +219,7 @@ export default function Auth() {
                       lastName: e.target.value,
                     })
                   }
+                  required
                 />
               </div>
               <Button
