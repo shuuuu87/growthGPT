@@ -47,7 +47,9 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
       return result;
     },
     onSuccess: (data: any) => {
-      setQuizScore({ score: data.score, total: data.totalQuestions });
+      const score = Number(data.score) || 0;
+      const total = Number(data.totalQuestions) || 1;
+      setQuizScore({ score, total });
       setShowResults(true);
       queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity/me"] });
@@ -158,13 +160,13 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
                 <Trophy className="w-10 h-10 text-primary" />
               </div>
               <div className="text-6xl font-extrabold text-primary my-6" data-testid="text-quiz-score">
-                {Math.round((quizScore.score / quizScore.total) * 100)}%
+                {quizScore.total > 0 ? Math.round((quizScore.score / quizScore.total) * 100) : 0}%
               </div>
               <p className="text-lg mb-2">
                 {quizScore.score} out of {quizScore.total} correct
               </p>
               <p className="text-muted-foreground mb-8">
-                {getEncouragingMessage((quizScore.score / quizScore.total) * 100)}
+                {getEncouragingMessage(quizScore.total > 0 ? (quizScore.score / quizScore.total) * 100 : 0)}
               </p>
               <Button onClick={onClose} size="lg" data-testid="button-close-results">
                 Continue

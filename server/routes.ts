@@ -6,6 +6,7 @@ import { generateMCQQuestions } from "./openai";
 import { insertStudySessionSchema, insertQuizResultSchema, insertGoalSchema, insertUserSchema, loginSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import passport from "passport";
+import { getRandomAvatar } from "./avatars";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -26,6 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser({
         ...validatedData,
         password: hashedPassword,
+        profileImageUrl: getRandomAvatar(),
       });
 
       req.login(user, (err) => {
