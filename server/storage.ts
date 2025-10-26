@@ -117,6 +117,15 @@ export class DatabaseStorage implements IStorage {
     return session;
   }
 
+  async storeQuizQuestions(id: string, questions: any): Promise<StudySession> {
+    const [session] = await db
+      .update(studySessions)
+      .set({ questions })
+      .where(eq(studySessions.id, id))
+      .returning();
+    return session;
+  }
+
   // Quiz results
   async createQuizResult(userId: string, result: InsertQuizResult): Promise<QuizResult> {
     const [newResult] = await db

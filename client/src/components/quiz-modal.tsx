@@ -41,14 +41,20 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
   // Submit quiz mutation
   const submitMutation = useMutation({
     mutationFn: async (answers: Record<number, number>) => {
-      const result = await apiRequest("POST", `/api/quiz/${sessionId}/submit`, {
+      const response = await apiRequest("POST", `/api/quiz/${sessionId}/submit`, {
         answers,
       });
+      const result = await response.json();
+      console.log("Quiz submission response:", result);
       return result;
     },
     onSuccess: (data: any) => {
+      console.log("Quiz onSuccess data:", data);
+      console.log("data.score:", data.score);
+      console.log("data.totalQuestions:", data.totalQuestions);
       const score = Number(data.score) || 0;
       const total = Number(data.totalQuestions) || 1;
+      console.log("Parsed score:", score, "total:", total);
       setQuizScore({ score, total });
       setShowResults(true);
       queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });

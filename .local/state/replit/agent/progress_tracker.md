@@ -17,3 +17,8 @@
 [x] 17. Generate 8 new diverse male avatars with different styles
 [x] 18. Update avatar system with 9 total male avatars
 [x] 19. Update database to reassign new avatars to all users
+[x] 20. Remove OpenAI npm package and use direct OpenRouter API calls instead
+[x] 21. Fix quiz scoring by storing questions with session instead of regenerating them
+[x] 21. Configure OPENROUTER_API_KEY environment variable
+[x] 22. Verify application is running successfully with OpenRouter integration
+[x] 23. Complete project import and migration

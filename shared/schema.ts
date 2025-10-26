@@ -47,6 +47,7 @@ export const studySessions = pgTable("study_sessions", {
   estimatedTime: integer("estimated_time").notNull(), // in minutes
   completed: boolean("completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
+  questions: jsonb("questions"), // Store generated quiz questions
   createdAt: timestamp("created_at").defaultNow(),
 });
 

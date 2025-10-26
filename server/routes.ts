@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
-import { generateMCQQuestions } from "./openai";
+import { generateMCQQuestions } from "./openrouter";
 import { insertStudySessionSchema, insertQuizResultSchema, insertGoalSchema, insertUserSchema, loginSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import passport from "passport";
@@ -146,8 +146,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Forbidden" });
       }
 
-      // Generate quiz questions using AI
-      const questions = await generateMCQQuestions(session.topic, session.subject);
+      // Check if questions are already generated, otherwise generate new ones
+      let questions = session.questions;
+      if (!questions) {
+        questions = await generateMCQQuestions(session.topic, session.subject);
+        await storage.storeQuizQuestions(sessionId, questions);
+      }
+
       res.json({ questions });
     } catch (error: any) {
       console.error("Error generating quiz:", error);
@@ -170,16 +175,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Forbidden" });
       }
 
-      // Generate questions again to get correct answers
-      const questions = await generateMCQQuestions(session.topic, session.subject);
+      // Get stored questions for grading
+      const questions = session.questions;
+      if (!questions || !Array.isArray(questions)) {
+        return res.status(400).json({ message: "Quiz questions not found" });
+      }
 
-      // Calculate score
+      console.log("Grading quiz:");
+      console.log("Answers received:", JSON.stringify(answers));
+      console.log("Questions count:", questions.length);
+
+      // Calculate score by comparing user answers with correct answers
       let score = 0;
-      questions.forEach((q, idx) => {
-        if (answers[idx] === q.correctAnswer) {
+      questions.forEach((q: any, idx: number) => {
+        const userAnswer = answers[idx];
+        const correctAnswer = q.correctAnswer;
+        const isCorrect = userAnswer === correctAnswer;
+        
+        console.log(`Question ${idx}: user=${userAnswer}, correct=${correctAnswer}, match=${isCorrect}`);
+        
+        if (isCorrect) {
           score++;
         }
       });
+
+      console.log("Final score:", score, "out of", questions.length);
 
       // Store quiz result
       const quizResult = await storage.createQuizResult(userId, {
