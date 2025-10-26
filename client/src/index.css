@@ -185,7 +185,64 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    position: relative;
+    min-height: 100vh;
+    background: linear-gradient(-45deg, #1a0b2e, #2d1b4e, #4a1a1a, #2d0a2d) !important;
+    background-size: 400% 400% !important;
+    animation: gradientFlow 15s ease infinite !important;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    z-index: 0;
+    pointer-events: none;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(255, 107, 107, 0.25) 0%, transparent 30%),
+      radial-gradient(circle at 80% 80%, rgba(138, 80, 255, 0.2) 0%, transparent 30%),
+      radial-gradient(circle at 40% 90%, rgba(255, 80, 150, 0.2) 0%, transparent 25%);
+    animation: floatingOrbs 20s ease-in-out infinite;
+  }
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes floatingOrbs {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(10%, 10%) rotate(90deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(0, 20%) rotate(180deg);
+    opacity: 1;
+  }
+  75% {
+    transform: translate(-10%, 10%) rotate(270deg);
+    opacity: 0.9;
   }
 }
 
