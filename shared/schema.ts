@@ -86,12 +86,34 @@ export const studyActivity = pgTable("study_activity", {
   userDateUnique: uniqueIndex("user_date_unique").on(table.userId, table.date),
 }));
 
+// Achievements table
+export const achievements = pgTable("achievements", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(), // 'milestone', 'accuracy', 'streak', 'volume', 'improvement', 'leaderboard', 'speed', 'special', 'fun'
+  rarity: varchar("rarity").notNull(), // 'common', 'uncommon', 'rare', 'epic', 'legendary'
+  icon: varchar("icon").notNull(), // emoji or icon name
+  condition: jsonb("condition").notNull(), // { type: string, value: number, ... }
+});
+
+// User achievements table
+export const userAchievements = pgTable("user_achievements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  achievementId: varchar("achievement_id").notNull().references(() => achievements.id, { onDelete: "cascade" }),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+}, (table) => ({
+  userAchievementUnique: uniqueIndex("user_achievement_unique").on(table.userId, table.achievementId),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   studySessions: many(studySessions),
   quizResults: many(quizResults),
   goals: many(goals),
   studyActivity: many(studyActivity),
+  userAchievements: many(userAchievements),
 }));
 
 export const studySessionsRelations = relations(studySessions, ({ one, many }) => ({
@@ -124,6 +146,21 @@ export const studyActivityRelations = relations(studyActivity, ({ one }) => ({
   user: one(users, {
     fields: [studyActivity.userId],
     references: [users.id],
+  }),
+}));
+
+export const achievementsRelations = relations(achievements, ({ many }) => ({
+  userAchievements: many(userAchievements),
+}));
+
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id],
+  }),
+  achievement: one(achievements, {
+    fields: [userAchievements.achievementId],
+    references: [achievements.id],
   }),
 }));
 
@@ -179,4 +216,12 @@ export type StudyActivity = typeof studyActivity.$inferSelect;
 export type StudySessionWithScore = StudySession & {
   score?: number;
   totalQuestions?: number;
+};
+export type Achievement = typeof achievements.$inferSelect;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type AchievementWithProgress = Achievement & {
+  unlocked: boolean;
+  unlockedAt?: Date | null;
+  progress?: number;
+  total?: number;
 };

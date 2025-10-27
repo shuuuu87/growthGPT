@@ -9,6 +9,7 @@ import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import Leaderboard from "@/pages/leaderboard";
+import Achievements from "@/pages/achievements";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -26,6 +27,7 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/leaderboard" component={Leaderboard} />
+          <Route path="/achievements" component={Achievements} />
         </>
       )}
       <Route component={NotFound} />

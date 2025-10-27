@@ -5,6 +5,8 @@ import {
   quizResults,
   goals,
   studyActivity,
+  achievements,
+  userAchievements,
   type User,
   type UpsertUser,
   type StudySession,
@@ -15,6 +17,9 @@ import {
   type InsertGoal,
   type StudyActivity,
   type StudySessionWithScore,
+  type Achievement,
+  type UserAchievement,
+  type AchievementWithProgress,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -49,6 +54,13 @@ export interface IStorage {
   getUserActivity(userId: string, days: number): Promise<StudyActivity[]>;
   upsertActivity(userId: string, date: string, studyTime: number, score: number): Promise<void>;
   getStreak(userId: string): Promise<number>;
+
+  // Achievements
+  getAllAchievements(): Promise<Achievement[]>;
+  getUserAchievements(userId: string): Promise<UserAchievement[]>;
+  getUserAchievementsWithProgress(userId: string): Promise<AchievementWithProgress[]>;
+  awardAchievement(userId: string, achievementId: string): Promise<UserAchievement | null>;
+  hasAchievement(userId: string, achievementId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -293,6 +305,64 @@ export class DatabaseStorage implements IStorage {
     }
 
     return streak;
+  }
+
+  // Achievements
+  async getAllAchievements(): Promise<Achievement[]> {
+    return await db.select().from(achievements);
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return await db
+      .select()
+      .from(userAchievements)
+      .where(eq(userAchievements.userId, userId))
+      .orderBy(desc(userAchievements.unlockedAt));
+  }
+
+  async getUserAchievementsWithProgress(userId: string): Promise<AchievementWithProgress[]> {
+    const allAchievements = await this.getAllAchievements();
+    const userAchievementsList = await this.getUserAchievements(userId);
+    
+    const userAchievementMap = new Map<string, UserAchievement>();
+    for (const ua of userAchievementsList) {
+      userAchievementMap.set(ua.achievementId, ua);
+    }
+
+    return allAchievements.map((achievement) => {
+      const userAchievement = userAchievementMap.get(achievement.id);
+      return {
+        ...achievement,
+        unlocked: !!userAchievement,
+        unlockedAt: userAchievement?.unlockedAt || null,
+      };
+    });
+  }
+
+  async awardAchievement(userId: string, achievementId: string): Promise<UserAchievement | null> {
+    const hasIt = await this.hasAchievement(userId, achievementId);
+    if (hasIt) {
+      return null;
+    }
+
+    const [newAchievement] = await db
+      .insert(userAchievements)
+      .values({ userId, achievementId })
+      .returning();
+    return newAchievement;
+  }
+
+  async hasAchievement(userId: string, achievementId: string): Promise<boolean> {
+    const [result] = await db
+      .select()
+      .from(userAchievements)
+      .where(
+        and(
+          eq(userAchievements.userId, userId),
+          eq(userAchievements.achievementId, achievementId)
+        )
+      );
+    return !!result;
   }
 }
 

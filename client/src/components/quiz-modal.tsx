@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trophy, Target } from "lucide-react";
+import { AchievementUnlockNotification } from "@/components/achievement-unlock-notification";
 
 interface Question {
   question: string;
@@ -31,6 +32,7 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+  const [newAchievements, setNewAchievements] = useState<string[]>([]);
 
   // Fetch quiz questions
   const { data: quizData, isLoading } = useQuery<{ questions: Question[] }>({
@@ -57,10 +59,14 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
       console.log("Parsed score:", score, "total:", total);
       setQuizScore({ score, total });
       setShowResults(true);
+      if (data.newAchievements && data.newAchievements.length > 0) {
+        setNewAchievements(data.newAchievements);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/streak"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/achievements/me"] });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -153,9 +159,16 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
   const allAnswered = Object.keys(selectedAnswers).length === totalQuestions;
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl" data-testid="dialog-quiz">
-        {showResults && quizScore ? (
+    <>
+      {newAchievements.length > 0 && (
+        <AchievementUnlockNotification
+          achievementIds={newAchievements}
+          onClose={() => setNewAchievements([])}
+        />
+      )}
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl" data-testid="dialog-quiz">
+          {showResults && quizScore ? (
           // Results View
           <>
             <DialogHeader>
@@ -178,10 +191,10 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
                 Continue
               </Button>
             </div>
-          </>
-        ) : (
-          // Quiz View
-          <>
+            </>
+          ) : (
+            // Quiz View
+            <>
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
@@ -268,9 +281,10 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
                 </Button>
               )}
             </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

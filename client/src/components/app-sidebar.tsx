@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, Trophy, User, Edit } from "lucide-react";
+import { Home, Trophy, User, Edit, Award } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -27,6 +27,11 @@ const menuItems = [
     title: "Leaderboard",
     url: "/leaderboard",
     icon: Trophy,
+  },
+  {
+    title: "Achievements",
+    url: "/achievements",
+    icon: Award,
   },
 ];
 

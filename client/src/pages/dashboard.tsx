@@ -6,8 +6,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Flame, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
-import type { StudySessionWithScore, QuizResult, Goal, StudyActivity } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Flame, Calendar as CalendarIcon, TrendingUp, Award, Trophy } from "lucide-react";
+import { Link } from "wouter";
+import type { StudySessionWithScore, QuizResult, Goal, StudyActivity, AchievementWithProgress } from "@shared/schema";
 import { AddSessionDialog } from "@/components/add-session-dialog";
 import { SessionList } from "@/components/session-list";
 import { ProgressChart } from "@/components/progress-chart";
@@ -57,6 +59,12 @@ export default function Dashboard() {
   // Fetch streak
   const { data: streakData } = useQuery<{ streak: number }>({
     queryKey: ["/api/streak"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch achievements
+  const { data: achievements = [] } = useQuery<AchievementWithProgress[]>({
+    queryKey: ["/api/achievements/me"],
     enabled: isAuthenticated,
   });
 
@@ -112,6 +120,52 @@ export default function Dashboard() {
           <div className="lg:col-span-4 space-y-6">
             {/* Streak Counter */}
             <StreakCounter streak={streakData?.streak || 0} />
+
+            {/* Achievement Stats */}
+            <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-purple-600 dark:text-purple-400" data-testid="text-achievement-total">
+                    {achievements.filter(a => a.unlocked).length}/{achievements.length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Unlocked</div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                      {achievements.filter(a => a.unlocked && a.rarity === 'legendary').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Legendary</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                      {achievements.filter(a => a.unlocked && a.rarity === 'epic').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Epic</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {achievements.filter(a => a.unlocked && a.rarity === 'rare').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Rare</div>
+                  </div>
+                </div>
+
+                <Link href="/achievements">
+                  <Button variant="outline" className="w-full" data-testid="button-view-achievements">
+                    <Award className="w-4 h-4 mr-2" />
+                    View All
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
             {/* Goal Calendar */}
             <GoalCalendar goals={goals} />

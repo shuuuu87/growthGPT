@@ -7,6 +7,7 @@ import { insertStudySessionSchema, insertQuizResultSchema, insertGoalSchema, ins
 import bcrypt from "bcryptjs";
 import passport from "passport";
 import { getRandomAvatar } from "@shared/avatars";
+import { checkAndAwardAchievements } from "./achievement-checker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -255,10 +256,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date().toISOString().split("T")[0];
       await storage.upsertActivity(userId, today, session.estimatedTime, score);
 
+      // Check and award achievements
+      const newAchievements = await checkAndAwardAchievements(userId, quizResult);
+
       res.json({
         score,
         totalQuestions: questions.length,
         percentage: Math.round((score / questions.length) * 100),
+        newAchievements,
       });
     } catch (error: any) {
       console.error("Error submitting quiz:", error);
@@ -383,6 +388,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Achievement routes
+  app.get("/api/achievements", isAuthenticated, async (req: any, res) => {
+    try {
+      const achievements = await storage.getAllAchievements();
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ message: "Failed to fetch achievements" });
+    }
+  });
+
+  app.get("/api/achievements/me", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const achievements = await storage.getUserAchievementsWithProgress(userId);
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ message: "Failed to fetch user achievements" });
+    }
+  });
+
+  app.get("/api/achievements/user/:userId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const userAchievements = await storage.getUserAchievements(userId);
+      res.json(userAchievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ message: "Failed to fetch user achievements" });
     }
   });
 
