@@ -900,7 +900,7 @@ export const ACHIEVEMENT_DEFINITIONS: Omit<Achievement, never>[] = [
     category: "special",
     rarity: "uncommon",
     icon: "🔄",
-    condition: { type: "quizzes_completed", value: 2 },
+    condition: { type: "quizzes_completed", value: 999999 },
   },
   {
     id: "dedication",

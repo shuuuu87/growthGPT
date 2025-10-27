@@ -1,7 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, BookOpen, CheckCircle2, Award } from "lucide-react";
+import { Clock, BookOpen, CheckCircle2, Award, FileText } from "lucide-react";
 import type { StudySessionWithScore } from "@shared/schema";
+import { useState } from "react";
+import { QuizReviewModal } from "./quiz-review-modal";
 
 interface SessionListProps {
   sessions: StudySessionWithScore[];
@@ -9,6 +11,8 @@ interface SessionListProps {
 }
 
 export function SessionList({ sessions, onCompleteSession }: SessionListProps) {
+  const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
+
   if (sessions.length === 0) {
     return (
       <div className="text-center py-12">
@@ -107,10 +111,29 @@ export function SessionList({ sessions, onCompleteSession }: SessionListProps) {
                     )}
                   </div>
                 </div>
+                {session.score !== undefined && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setReviewSessionId(session.id)}
+                    data-testid={`button-review-${session.id}`}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Review Answers
+                  </Button>
+                )}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {reviewSessionId && (
+        <QuizReviewModal
+          sessionId={reviewSessionId}
+          isOpen={!!reviewSessionId}
+          onClose={() => setReviewSessionId(null)}
+        />
       )}
     </div>
   );

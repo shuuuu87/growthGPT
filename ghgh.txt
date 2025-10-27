@@ -1,0 +1,26 @@
+time and task Management
+Timer Persistence:even user close web,refresh app, change app or login with other device still it continue counting.
+Multiple Active Tasks: no users can run multiple timers simultaneously, only one task timer at a time.
+Task Completion: When a timer hits 00:00, the task automatically move to a "completed tasks" section,and get disappear from active task section.
+Timer Display Format: timers should show hours:minutes:seconds (HH:MM:SS) .
+Points & Ranking System
+Point Decimals: points should be displayed with decimal places (like 5.25 points) .
+Rank Calculation: yes the ranking should be based on total lifetime points.
+Point Reset: no users never ever lose points, they only accumulate over time.
+Partial Minutes: If a timer is stopped mid-minute users will get partial points (like 0.5 minutes = ~0.042 points).
+Streak System
+Daily Study Time: Does the 2-hour daily requirement it can be accumulated across multiple tasks.
+Timezone Handling: it should follow IST mumbai time.
+Streak Display: just current streak number.
+Competition System
+Challenge Timing: acctually the competition period is of 2 days or of 7 days max .
+hallenge Acceptance:there is an acceptance/decline mechanism user will get mail when he had a invitation to competition.
+Ongoing Challenges: a user can have only one challenge at a time .
+Challenge Rewards: the point transfers immediately as challenge ends.
+User Interface
+Profile Images: the maximum file size is of 5 mb
+Sidebar Behavior: it should stay close untill user click that 3 line button
+Mobile Responsiveness:the sidebar should overlay content 
+Data & Progress
+Progress Chart: the 30-day progress chart should show study time
+Data Retention: no limit 

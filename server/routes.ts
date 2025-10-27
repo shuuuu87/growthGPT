@@ -282,6 +282,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/quiz/:sessionId/results", isAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      const userId = req.user.id;
+
+      const session = await storage.getStudySession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      // Get all quiz results for this user to find the one for this session
+      const allResults = await storage.getUserQuizResults(userId);
+      const quizResult = allResults.find((r: any) => r.sessionId === sessionId);
+
+      if (!quizResult) {
+        return res.status(404).json({ message: "Quiz results not found for this session" });
+      }
+
+      // Prepare detailed results for review
+      const questions = quizResult.questions as any[];
+      const userAnswers = quizResult.userAnswers as number[];
+      
+      const detailedResults = questions.map((q: any, idx: number) => ({
+        question: q.question,
+        options: q.options,
+        userAnswer: userAnswers[idx],
+        correctAnswer: q.correctAnswer,
+        isCorrect: userAnswers[idx] === q.correctAnswer,
+        explanation: q.explanation || 'No explanation available.',
+      }));
+
+      res.json({
+        score: quizResult.score,
+        totalQuestions: quizResult.totalQuestions,
+        percentage: Math.round((quizResult.score / quizResult.totalQuestions) * 100),
+        detailedResults,
+      });
+    } catch (error: any) {
+      console.error("Error fetching quiz results:", error);
+      res.status(500).json({ message: "Failed to fetch quiz results" });
+    }
+  });
+
   // Activity routes
   app.get("/api/activity/me", isAuthenticated, async (req: any, res) => {
     try {
@@ -434,8 +481,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/achievements/user/:userId", isAuthenticated, async (req: any, res) => {
     try {
       const { userId } = req.params;
-      const userAchievements = await storage.getUserAchievements(userId);
-      res.json(userAchievements);
+      const achievements = await storage.getUserAchievementsWithProgress(userId);
+      res.json(achievements);
     } catch (error) {
       console.error("Error fetching user achievements:", error);
       res.status(500).json({ message: "Failed to fetch user achievements" });

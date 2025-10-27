@@ -165,11 +165,26 @@ async function checkCondition(
     }
 
     case "study_hour": {
-      const quizHour = latestQuiz.createdAt ? latestQuiz.createdAt.getHours() : -1;
+      if (!latestQuiz.createdAt) return false;
+      
+      const utcTime = new Date(latestQuiz.createdAt);
+      const istOffsetMinutes = 5 * 60 + 30;
+      const istTime = new Date(utcTime.getTime() + istOffsetMinutes * 60 * 1000);
+      const istHour = istTime.getUTCHours();
+      
       if (condition.hour === 0) {
-        return quizHour === 0 || quizHour === 24;
+        return (istHour === 0 || istHour === 24) && stats.streak >= condition.days;
       }
-      return quizHour < condition.hour && stats.streak >= condition.days;
+      if (condition.hour === 3) {
+        return istHour === 3 && stats.streak >= condition.days;
+      }
+      if (condition.hour === 12) {
+        return istHour === 12 && stats.streak >= condition.days;
+      }
+      if (condition.hour === 22) {
+        return istHour >= 22 && stats.streak >= condition.days;
+      }
+      return istHour < condition.hour && stats.streak >= condition.days;
     }
 
     default:
