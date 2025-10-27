@@ -12,13 +12,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trophy, Target } from "lucide-react";
+import { Loader2, Trophy, Target, CheckCircle2, XCircle, BookOpen } from "lucide-react";
 import { AchievementUnlockNotification } from "@/components/achievement-unlock-notification";
 
 interface Question {
   question: string;
   options: string[];
   correctAnswer: number;
+  explanation?: string;
+}
+
+interface DetailedResult {
+  question: string;
+  options: string[];
+  userAnswer: number;
+  correctAnswer: number;
+  isCorrect: boolean;
+  explanation: string;
 }
 
 interface QuizModalProps {
@@ -31,7 +41,9 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+  const [detailedResults, setDetailedResults] = useState<DetailedResult[]>([]);
   const [newAchievements, setNewAchievements] = useState<string[]>([]);
 
   // Fetch quiz questions
@@ -58,6 +70,7 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
       const total = Number(data.totalQuestions) || 1;
       console.log("Parsed score:", score, "total:", total);
       setQuizScore({ score, total });
+      setDetailedResults(data.detailedResults || []);
       setShowResults(true);
       if (data.newAchievements && data.newAchievements.length > 0) {
         setNewAchievements(data.newAchievements);
@@ -168,8 +181,105 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
       )}
       <Dialog open onOpenChange={onClose}>
         <DialogContent className="max-w-2xl" data-testid="dialog-quiz">
-          {showResults && quizScore ? (
-          // Results View
+          {showReview && detailedResults.length > 0 ? (
+            // Detailed Review View
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between">
+                  <span>Quiz Review</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowReview(false)}
+                    data-testid="button-back-to-summary"
+                  >
+                    Back to Summary
+                  </Button>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto py-4 space-y-6">
+                {detailedResults.map((result, idx) => (
+                  <div
+                    key={idx}
+                    className={`border-2 rounded-lg p-4 ${
+                      result.isCorrect
+                        ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                        : "border-red-500 bg-red-50 dark:bg-red-950/20"
+                    }`}
+                    data-testid={`review-question-${idx}`}
+                  >
+                    <div className="flex items-start gap-2 mb-3">
+                      {result.isCorrect ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-lg mb-2 text-gray-900 dark:text-gray-100">
+                          Question {idx + 1}: {result.question}
+                        </h4>
+
+                        <div className="space-y-2 mb-3">
+                          {result.options.map((option, optIdx) => {
+                            const isUserAnswer = optIdx === result.userAnswer;
+                            const isCorrectAnswer = optIdx === result.correctAnswer;
+
+                            return (
+                              <div
+                                key={optIdx}
+                                className={`p-3 rounded-md text-sm ${
+                                  isCorrectAnswer
+                                    ? "bg-green-100 dark:bg-green-900/30 border-2 border-green-500 text-gray-900 dark:text-gray-100"
+                                    : isUserAnswer
+                                    ? "bg-red-100 dark:bg-red-900/30 border-2 border-red-500 text-gray-900 dark:text-gray-100"
+                                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                }`}
+                                data-testid={`review-option-${idx}-${optIdx}`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span>{option}</span>
+                                  {isCorrectAnswer && (
+                                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">
+                                      ✓ Correct Answer
+                                    </span>
+                                  )}
+                                  {isUserAnswer && !isCorrectAnswer && (
+                                    <span className="text-xs font-semibold text-red-700 dark:text-red-300">
+                                      ✗ Your Answer
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 p-3 rounded">
+                          <div className="flex items-start gap-2">
+                            <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                                Explanation:
+                              </p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {result.explanation}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-4 border-t">
+                <Button onClick={onClose} className="flex-1" data-testid="button-close-review">
+                  Close
+                </Button>
+              </div>
+            </>
+          ) : showResults && quizScore ? (
+          // Results Summary View
           <>
             <DialogHeader>
               <DialogTitle>Quiz Complete!</DialogTitle>
@@ -187,9 +297,20 @@ export function QuizModal({ sessionId, onClose }: QuizModalProps) {
               <p className="text-muted-foreground mb-8">
                 {getEncouragingMessage(quizScore.total > 0 ? (quizScore.score / quizScore.total) * 100 : 0)}
               </p>
-              <Button onClick={onClose} size="lg" data-testid="button-close-results">
-                Continue
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReview(true)}
+                  size="lg"
+                  data-testid="button-review-answers"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Review Answers
+                </Button>
+                <Button onClick={onClose} size="lg" data-testid="button-close-results">
+                  Continue
+                </Button>
+              </div>
             </div>
             </>
           ) : (

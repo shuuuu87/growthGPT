@@ -2,6 +2,7 @@ interface MCQQuestion {
   question: string;
   options: string[];
   correctAnswer: number;
+  explanation?: string;
 }
 
 export async function generateMCQQuestions(topic: string, subject: string): Promise<MCQQuestion[]> {
@@ -19,7 +20,7 @@ export async function generateMCQQuestions(topic: string, subject: string): Prom
         messages: [
           {
             role: "system",
-            content: `You are an expert educator creating multiple choice questions for students. Generate exactly 5 questions about the given topic. Each question should have 4 answer options (A, B, C, D) with only ONE correct answer. The wrong answers should be plausible but clearly incorrect. Format your response exactly like this:
+            content: `You are an expert educator creating multiple choice questions for students. Generate exactly 5 questions about the given topic. Each question should have 4 answer options (A, B, C, D) with only ONE correct answer. The wrong answers should be plausible but clearly incorrect. Include a clear explanation for each correct answer. Format your response exactly like this:
 
 1. Q: What is the capital of France?
    A: London
@@ -27,13 +28,15 @@ export async function generateMCQQuestions(topic: string, subject: string): Prom
    C: Berlin
    D: Madrid
    CORRECT: B
+   EXPLANATION: Paris is the capital and largest city of France. It has been the capital since the 12th century and is known for landmarks like the Eiffel Tower and the Louvre Museum.
 
 2. Q: What gas do plants absorb during photosynthesis?
    A: Oxygen
    B: Nitrogen
    C: Carbon Dioxide
    D: Hydrogen
-   CORRECT: C`,
+   CORRECT: C
+   EXPLANATION: Plants absorb carbon dioxide (CO2) from the air through small pores called stomata. During photosynthesis, plants use CO2, water, and sunlight to produce glucose and oxygen. The oxygen is released as a byproduct.`,
           },
           {
             role: "user",
@@ -71,6 +74,7 @@ function parseQuestionsFromText(text: string, topic: string): MCQQuestion[] {
   let currentQuestion = '';
   let currentOptions: string[] = [];
   let correctAnswer = -1;
+  let currentExplanation = '';
   
   for (const line of lines) {
     const trimmed = line.trim();
@@ -81,11 +85,13 @@ function parseQuestionsFromText(text: string, topic: string): MCQQuestion[] {
           question: currentQuestion,
           options: currentOptions,
           correctAnswer: correctAnswer,
+          explanation: currentExplanation || 'No explanation provided.',
         });
       }
       currentQuestion = trimmed.replace(/^\d+\.\s*Q:\s*/i, '').replace(/^Q:\s*/i, '').trim();
       currentOptions = [];
       correctAnswer = -1;
+      currentExplanation = '';
     }
     else if (trimmed.match(/^[A-D]:/i)) {
       const optionText = trimmed.replace(/^[A-D]:\s*/i, '').trim();
@@ -95,6 +101,12 @@ function parseQuestionsFromText(text: string, topic: string): MCQQuestion[] {
       const correctLetter = trimmed.replace(/^CORRECT:\s*/i, '').trim().toUpperCase();
       correctAnswer = correctLetter.charCodeAt(0) - 'A'.charCodeAt(0);
     }
+    else if (trimmed.match(/^EXPLANATION:/i)) {
+      currentExplanation = trimmed.replace(/^EXPLANATION:\s*/i, '').trim();
+    }
+    else if (currentExplanation && trimmed && !trimmed.match(/^\d+\.\s*Q:/i)) {
+      currentExplanation += ' ' + trimmed;
+    }
   }
   
   if (currentQuestion && currentOptions.length === 4 && correctAnswer >= 0) {
@@ -102,6 +114,7 @@ function parseQuestionsFromText(text: string, topic: string): MCQQuestion[] {
       question: currentQuestion,
       options: currentOptions,
       correctAnswer: correctAnswer,
+      explanation: currentExplanation || 'No explanation provided.',
     });
   }
   
@@ -118,16 +131,19 @@ function createFallbackQuestions(topic: string): MCQQuestion[] {
       question: `What is the primary focus when studying ${topic}?`,
       options: ['Understanding core concepts and principles', 'Memorizing dates only', 'Learning unrelated subjects', 'Ignoring practical applications'],
       correctAnswer: 0,
+      explanation: 'Understanding core concepts and principles is fundamental to truly mastering any subject, as it allows you to apply knowledge in different contexts.',
     },
     {
       question: `Why is learning about ${topic} important?`,
       options: ['It builds foundational knowledge', 'It has no practical use', 'It only matters for tests', 'It should be avoided'],
       correctAnswer: 0,
+      explanation: 'Learning builds foundational knowledge that serves as a basis for understanding more complex topics and real-world applications.',
     },
     {
       question: `What approach is best for mastering ${topic}?`,
       options: ['Regular practice and review', 'Cramming before exams', 'Avoiding difficult concepts', 'Skipping fundamentals'],
       correctAnswer: 0,
+      explanation: 'Regular practice and review helps reinforce learning and move information from short-term to long-term memory, making it the most effective study approach.',
     },
   ];
 }

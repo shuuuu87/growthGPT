@@ -259,11 +259,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check and award achievements
       const newAchievements = await checkAndAwardAchievements(userId, quizResult);
 
+      // Prepare detailed results for review
+      const detailedResults = questions.map((q: any, idx: number) => ({
+        question: q.question,
+        options: q.options,
+        userAnswer: answers[idx],
+        correctAnswer: q.correctAnswer,
+        isCorrect: answers[idx] === q.correctAnswer,
+        explanation: q.explanation || 'No explanation available.',
+      }));
+
       res.json({
         score,
         totalQuestions: questions.length,
         percentage: Math.round((score / questions.length) * 100),
         newAchievements,
+        detailedResults,
       });
     } catch (error: any) {
       console.error("Error submitting quiz:", error);
@@ -405,7 +416,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/achievements/me", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      console.log("[ACHIEVEMENTS] Fetching achievements for user:", userId);
+      
+      const allAchievements = await storage.getAllAchievements();
+      console.log("[ACHIEVEMENTS] Total achievements in DB:", allAchievements.length);
+      
       const achievements = await storage.getUserAchievementsWithProgress(userId);
+      console.log("[ACHIEVEMENTS] Achievements with progress:", achievements.length);
+      
       res.json(achievements);
     } catch (error) {
       console.error("Error fetching user achievements:", error);
